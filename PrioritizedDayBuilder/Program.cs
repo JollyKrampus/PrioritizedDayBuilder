@@ -1,9 +1,16 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Hangfire;
+using PrioritizedDayBuilder.Jobs;
+using Hangfire.MemoryStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+
+// Hangfire configuration
+builder.Services.AddHangfire(config => config.UseMemoryStorage());
+builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 
@@ -19,8 +26,17 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapBlazorHub();
+    endpoints.MapFallbackToPage("/_Host");
+    endpoints.MapHangfireDashboard();
+});
+
+string cronExpression = Cron.Daily(); // This sets the job to run daily at 00:00
+TimeZoneInfo mountainStandardTime = TimeZoneInfo.FindSystemTimeZoneById("Mountain Standard Time");
+
+RecurringJob.AddOrUpdate(() => new BuildPrioritizedDay().Build(), cronExpression, mountainStandardTime);
+
 
 app.Run();
-
