@@ -1,0 +1,84 @@
+﻿@using PriortizedDayBuilder.Data
+@using System.Timers
+
+@inject IJSRuntime JSRuntime
+
+@code {
+    [Parameter] public PriorityTask PriorityTask { get; set; }
+    private string TimerDisplay { get; set; }
+    private System.Timers.Timer _timer;
+    private TimeSpan _remainingTime;
+    private bool _isTimerStarted = false;
+    private bool _isTimerPaused = false;
+
+    protected override void OnInitialized()
+    {
+        TimerDisplay = $"{PriorityTask.Hours}:00";
+    }
+
+    private void ToggleTimer()
+    {
+        if (!_isTimerStarted)
+        {
+            // Start the timer
+            _remainingTime = TimeSpan.FromHours(PriorityTask.Hours);
+
+            _timer = new System.Timers.Timer(1000); // 1 second intervals
+            _timer.Elapsed += OnTimerElapsed;
+            _timer.AutoReset = true;
+            _timer.Start();
+
+            _isTimerStarted = true;
+            _isTimerPaused = false;
+
+            JSRuntime.InvokeVoidAsync("console.log", "Timer started");
+        }
+        else if (_isTimerPaused)
+        {
+            // Resume the timer
+            _isTimerPaused = false;
+            JSRuntime.InvokeVoidAsync("console.log", "Timer resumed");
+        }
+        else
+        {
+            // Pause the timer
+            _isTimerPaused = true;
+            JSRuntime.InvokeVoidAsync("console.log", "Timer paused");
+        }
+    }
+
+    private void OnTimerElapsed(Object source, ElapsedEventArgs e)
+    {
+        if (_isTimerPaused)
+        {
+            return;
+        }
+
+        if (_remainingTime.TotalSeconds <= 0)
+        {
+            _timer.Stop();
+            _isTimerStarted = false;
+            _isTimerPaused = false;
+            PriorityTask.IsDone = true;
+
+            StateHasChanged(); // To refresh the UI
+            JSRuntime.InvokeVoidAsync("console.log", "Timer finished");
+            return;
+        }
+
+        _remainingTime = _remainingTime.Add(TimeSpan.FromSeconds(-1));
+        TimerDisplay = $"{_remainingTime.Hours}:{_remainingTime.Minutes:D2}:{_remainingTime.Seconds:D2}";
+
+        InvokeAsync(StateHasChanged); // To refresh the UI
+    }
+}
+
+<div class="task">
+    <input type="checkbox" @bind="PriorityTask.IsDone" disabled />
+    <span>@PriorityTask.Name (@PriorityTask.Day)</span>
+    <span>Priority: @PriorityTask.Priority</span>
+    <span>Hours: @PriorityTask.Hours</span>
+    <button @onclick="ToggleTimer">@(_isTimerStarted ? (_isTimerPaused ? "Resume" : "Pause") : "Start")</button>
+    <span>@TimerDisplay</span>
+</div>
+

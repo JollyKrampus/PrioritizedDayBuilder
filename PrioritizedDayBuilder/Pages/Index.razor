@@ -1,0 +1,25 @@
+﻿@page "/"
+@using PriortizedDayBuilder.Data
+@inject IJSRuntime JSRuntime
+
+<h1>Priorities for @DateTime.Today.ToString("D")</h1>
+
+@foreach (var task in tasks)
+{
+    <PriorityTaskComponent PriorityTask="task"></PriorityTaskComponent>
+}
+
+@code {
+    private List<PriorityTask> tasks = new List<PriorityTask>();
+
+    protected override void OnInitialized()
+    {
+        // Populate tasks with test data
+        tasks = new List<PriorityTask>
+{
+            new PriorityTask { Id = 1, Name = "Task 1", Day = "Monday", Priority = 1, Hours = 2, IsDone = true },
+            new PriorityTask { Id = 2, Name = "Task 2", Day = "Tuesday", Priority = 2, Hours = 1.5, IsDone = false },
+            // Add more test tasks...
+        };
+    }
+}
